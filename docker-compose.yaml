@@ -1,0 +1,13 @@
+services:
+  redis:
+    image: redis/redis-stack:latest
+    container_name: redis-server
+    restart: unless-stopped
+    ports:
+      - "6379:6379"     # Redis server
+      - "8001:8001"     # RedisInsight UI
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
