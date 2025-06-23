@@ -33,10 +33,12 @@ export const SignUpController = async (req, res) => {
   try {
     const parsedData = schemas.signUpSchema.safeParse(req.body);
     if (!parsedData.success) {
+      logger.error(`Validation error in SignUpController`, parsedData.error);
       return res.status(400).json({
         message: "Validation error",
         errors: parsedData.error.flatten().fieldErrors,
       });
+
     }
 
     const { email, password, full_name, profile_picture, bio } =
@@ -72,6 +74,7 @@ export const SignUpController = async (req, res) => {
     return res.status(201).json({
       message: "User account created successfully",
       user: {
+        _id:savedUser._id,
         email: savedUser.email,
         full_name: savedUser.full_name,
         profile_picture: savedUser.profile_picture,
@@ -118,6 +121,7 @@ export const LoginController = async (req, res) => {
     return res.status(200).json({
       message: "User logged in successfully",
       user: {
+        _id:user._id,
         email: user.email,
         full_name: user.full_name,
         profile_picture: user.profile_picture,
@@ -171,6 +175,11 @@ export const profileController = async (req, res) => {
       { profile_picture: uploadResponse.secure_url },
       { new: true }
     );
+
+    res.status(200).json({
+      user: updatedUser,
+      message: "Profile picture updated successfully",
+    });
 
     if (!updatedUser) {
       logger.error(`User not found with ID: ${req.user._id}`);
@@ -245,7 +254,7 @@ export const getUserProfile = async (req, res) => {
 
 export const authenticatedUser = async (req, res) => {
   try {
-    res.status(200).json({message:"User is authenticated", user: req.user});
+    res.status(200).json({ message: "User is authenticated", user: req.user });
   } catch (error) {
     logger.error(`Error in authenticatedUser :: `, error);
     return res.status(500).json({ message: "Internal Server Error" });

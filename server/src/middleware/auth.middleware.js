@@ -12,18 +12,18 @@ export const authMiddleware = async (req, res, next) => {
     token = req.cookies.token;
   }
   if (!token) {
-    // logger.warn("No token provided in request headers or cookies");
+    logger.warn("No token provided in request headers or cookies");
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (!decoded?.id) {
-      logger.warn("Invalid token structure");
+    if (!decoded?.userId) {
+      logger.warn("Invalid token structure token : " + token);
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    const user = await UserModel.findById(decoded.id).select("-password");
+    const user = await UserModel.findById(decoded.userId).select("-password");
 
     if (!user) {
       logger.warn("User not found for the provided token");
@@ -35,7 +35,7 @@ export const authMiddleware = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    // logger.error("Token verification failed:", error.message);
+    logger.error("Token verification failed:", error.message);
     return res.status(401).json({ success: false, message: "Invalid token" });
   }
 };

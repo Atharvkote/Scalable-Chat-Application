@@ -44,7 +44,7 @@ authRouter.post("/signup" , SignUpController);
 authRouter.post("/logout" , LogOutContoller);
 
 // Profile routes
-authRouter.post("/update-profile" , authMiddleware, profileController);
+authRouter.put("/update-profile" , authMiddleware, profileController);
 authRouter.get("/get-user", authMiddleware, getUserProfile)
 
 // Auth Check 
