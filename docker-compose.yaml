@@ -4,10 +4,38 @@ services:
     container_name: redis-server
     restart: unless-stopped
     ports:
-      - "6379:6379"     # Redis server
-      - "8001:8001"     # RedisInsight UI
+      - "6379:6379" # Redis server
+      - "8001:8001" # RedisInsight UI
     volumes:
       - redis_data:/data
 
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SASL_PLAINTEXT:SASL_PLAINTEXT
+      KAFKA_LISTENERS: SASL_PLAINTEXT://:9093
+      KAFKA_ADVERTISED_LISTENERS: SASL_PLAINTEXT://192.168.0.100:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: SASL_PLAINTEXT
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+    volumes:
+      - ./kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
+    depends_on:
+      - zookeeper
+
 volumes:
   redis_data:
+
+

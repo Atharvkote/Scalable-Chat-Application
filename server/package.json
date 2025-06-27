@@ -13,6 +13,7 @@
   "type": "module",
   "dependencies": {
     "@pnpm/exe": "^10.12.1",
+    "@socket.io/redis-streams-adapter": "^0.2.2",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
     "cloudinary": "^2.7.0",
@@ -24,6 +25,7 @@
     "helmet": "^8.1.0",
     "ioredis": "^5.6.1",
     "jsonwebtoken": "^9.0.2",
+    "kafkajs": "^2.2.4",
     "mongoose": "^8.16.0",
     "rate-limit-redis": "^4.2.1",
     "rate-limiter-flexible": "^7.1.1",

@@ -1,11 +1,13 @@
+import "dotenv/config";
 import io from "../../server.js";
+import { sendToKafka } from "../controllers/kafka.controller.js";
 const userSocketMap = {};
 
 export function getReceiverSocketId(userId) {
   return userSocketMap[userId];
 }
 
-export const socketIOBroadcastor = () => {
+export const socketIOBroadcastor = async () => {
   io.on("connection", (socket) => {
     if (io) {
       console.log("Broadcasting Socket IO");
@@ -38,8 +40,9 @@ export const socketIOBroadcastor = () => {
       io.to(receiverSocketId).emit("newMessage", message);
       io.to(senderSocketId).emit("newMessage", message);
 
-      // Optional DB save
-      
+      // send to kafka server
+      await sendToKafka(process.env.KAFKA_TOPIC, message);
+
       callback({ status: "ok", message: message });
     });
 

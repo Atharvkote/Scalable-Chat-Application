@@ -2,7 +2,7 @@ import MessageModel from "../models/message.model.js";
 import UserModel from "../models/user.model.js";
 import cloudinary from "../configs/cloudinary.config.js";
 import logger from "../utils/logger.js";
-import io  from "../../server.js";
+import io from "../../server.js";
 import { getReceiverSocketId } from "../configs/socket.config.js";
 
 export const sendMessage = async (req, res) => {
@@ -31,7 +31,7 @@ export const sendMessage = async (req, res) => {
       }
       imageURL = uploadResponse.secure_url;
     }
-    
+
     const newMessage = new MessageModel({
       senderId,
       receiverId,
@@ -53,7 +53,6 @@ export const sendMessage = async (req, res) => {
       message: "Message sent successfully",
       data: savedMessage,
     });
-
   } catch (error) {
     logger.error(`Error in sendMessage Controller: `, error);
     return res.status(500).json({ message: "Internal Server Error" });

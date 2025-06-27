@@ -15,6 +15,7 @@ import { RedisStore } from "rate-limit-redis";
 import { RateLimiterRedis } from "rate-limiter-flexible";
 import { fileURLToPath } from "url";
 import { Server } from "socket.io";
+import { createAdapter } from "@socket.io/redis-streams-adapter";
 
 // Connections & Configurations
 import { connectDB, disconnectDB } from "./src/configs/mongodb.config.js";
@@ -26,6 +27,9 @@ import messageRouter from "./src/routes/messages.route.js";
 
 // Web Socket Broadcasters
 import { socketIOBroadcastor } from "./src/configs/socket.config.js";
+import { connectToKafka } from "./src/configs/kafka.config.js";
+import { error } from "console";
+import { kafkaToMongoDB } from "./src/controllers/kafka.controller.js";
 
 // Configs
 await connectDB();
@@ -73,24 +77,28 @@ app.use(
 
 // Socket IO Server SetUp
 const io = new Server(server, {
-    cors: {
-        origin: allowedOrigins,
-        methods: ["GET", "POST", "DELETE", "PATCH", "HEAD", "PUT"],
-        credentials: true,
-    },
-    pingInterval: 5000,
-    pingTimeout: 20000,
-    allowEIO3: true,
+  adapter: createAdapter(redisClient), // scaling socket.io using redis
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "DELETE", "PATCH", "HEAD", "PUT"],
+    credentials: true,
+  },
+  pingInterval: 5000,
+  pingTimeout: 20000,
+  allowEIO3: true,
 });
 
-io ? logger.info(`Web Socket(Socket.io) Server Initialized! [ Enviroment : ${process.env.NODE_ENV}]`) : logger.error(`Web Socket(Socket.io) Server Initialization Failed! [ Enviroment : ${process.env.NODE_ENV}]`)
+io
+  ? logger.info(
+      `Web Socket(Socket.io) Server Initialized! [ Enviroment : ${process.env.NODE_ENV}]`
+    )
+  : logger.error(
+      `Web Socket(Socket.io) Server Initialization Failed! [ Enviroment : ${process.env.NODE_ENV}]`
+    );
 export default io;
-
 
 // Broadcast Joined Users
 socketIOBroadcastor();
-
-
 
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
@@ -175,6 +183,15 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/messages", messageRouter);
+
+// KAFKA Setup
+connectToKafka().catch((error) => {
+  logger.error("Error in Connecting to Kafka Server :", error);
+});
+
+kafkaToMongoDB(process.env.KAFKA_TOPIC).catch((error) => {
+  logger.error("Error in Consuming form Kafka Server :", error);
+});
 
 // Start server
 server.listen(SERVER_PORT, () => {
