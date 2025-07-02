@@ -5,6 +5,23 @@ import logger from "../utils/logger.js";
 import io from "../../server.js";
 import { getReceiverSocketId } from "../configs/socket.config.js";
 
+/**
+ * @function sendMessage
+ * @description Handles sending a message from the authenticated user to a receiver.
+ * Uploads image to Cloudinary if provided, saves message to MongoDB, 
+ * and emits it via Socket.IO to the receiver.
+ *
+ * @route POST /api/messages/:id
+ *
+ * @param {Object} req - Express request object (expects req.user, req.body, req.params)
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} 200 - Success with message data
+ * @returns {Object} 400 - Bad request if parameters missing
+ * @returns {Object} 500 - Internal server error
+ */
+
+
 export const sendMessage = async (req, res) => {
   try {
     const receiverId = req.params.id;
@@ -59,6 +76,21 @@ export const sendMessage = async (req, res) => {
   }
 };
 
+
+/**
+ * @function getMessages
+ * @description Fetches all chat messages between the authenticated user and another user.
+ *
+ * @route GET /api/messages/:id
+ *
+ * @param {Object} req - Express request object (expects req.user, req.params)
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} 200 - Array of message documents
+ * @returns {Object} 500 - Internal server error
+ */
+
+
 export const getMessages = async (req, res) => {
   try {
     const { id: userToChatId } = req.params;
@@ -77,6 +109,21 @@ export const getMessages = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+/**
+ * @function getOnlineUsers
+ * @description Retrieves all users except the authenticated user, 
+ * used to show online user list (minus sensitive fields).
+ *
+ * @route GET /api/users/online
+ *
+ * @param {Object} req - Express request object (expects req.user)
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} 200 - Array of user documents
+ * @returns {Object} 404 - If no users found
+ * @returns {Object} 500 - Internal server error
+ */
 
 export const getOnlineUsers = async (req, res) => {
   try {

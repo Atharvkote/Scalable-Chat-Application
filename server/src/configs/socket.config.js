@@ -1,7 +1,24 @@
 import "dotenv/config";
 import io from "../../server.js";
 import { sendToKafka } from "../controllers/kafka.controller.js";
+import { socketioLogger } from "../utils/logger.js";
 const userSocketMap = {};
+
+/**
+ * @file Socket.IO broadcaster
+ * @description Sets up Socket.IO server to handle user connections, 
+ * message broadcasting, and forwards messages to Kafka.
+ *
+ * Functions:
+ * - getReceiverSocketId(userId): returns socket ID for given user
+ * - socketIOBroadcastor(): initializes Socket.IO events for connections and messaging
+ *
+ * Dependencies:
+ * - dotenv for env vars (KAFKA_TOPIC)
+ * - socketioLogger for structured logs
+ * - sendToKafka() to forward messages to Kafka topic
+ */
+
 
 export function getReceiverSocketId(userId) {
   return userSocketMap[userId];
@@ -10,18 +27,18 @@ export function getReceiverSocketId(userId) {
 export const socketIOBroadcastor = async () => {
   io.on("connection", (socket) => {
     if (io) {
-      console.log("Broadcasting Socket IO");
+      socketioLogger.info("Broadcasting Socket IO Server [ Enviroment : development]");
     }
 
-    console.log("A user connected", socket.id);
-
+    
     const userId = socket.handshake.query.userId;
-    // console.log(userId)
+    socketioLogger.info(`A user connected Socket Id : ${socket.id} UserId : ${userId} `);
+    // socketioLogger.log(userId)
     if (userId) userSocketMap[userId] = socket.id;
 
     // io.emit() is used to send events to all the connected clients
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
-    console.log("Map : " + Object.keys(userSocketMap));
+    // socketioLogger.info("Map : " + Object.keys(userSocketMap));
 
     socket.on("sendMessage", async ({ to, text, image }, callback) => {
       const senderId = userId;
@@ -47,7 +64,7 @@ export const socketIOBroadcastor = async () => {
     });
 
     socket.on("disconnect", () => {
-      console.log("A user disconnected", socket.id);
+      socketioLogger.info("A user disconnected", socket.id);
       delete userSocketMap[userId];
       io.emit("getOnlineUsers", Object.keys(userSocketMap));
     });

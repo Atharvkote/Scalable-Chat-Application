@@ -7,7 +7,6 @@ import { v2 as cloudinary } from "cloudinary";
  * It exports the configured Cloudinary instance.
  */
 
-
 cloudinary.config({
   cloud_name: process.env.CLOUNDINARY_CLOUD_NAME,
   api_key: process.env.CLOUNDINARY_API_KEY,

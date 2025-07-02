@@ -1,6 +1,16 @@
 import { producer, consumer } from "../configs/kafka.config.js";
 import MessageModel from "../models/message.model.js";
-import logger from "../utils/logger.js";
+import { kafkaLogger } from "../utils/logger.js";
+
+/**
+ * @function sendToKafka
+ * @description Sends a JSON stringified message to a specified Kafka topic.
+ *
+ * @param {string} topic - Kafka topic name
+ * @param {Object} message - Message payload to send
+ *
+ * @returns {void}
+ */
 
 export const sendToKafka = async (topic, message) => {
   try {
@@ -8,11 +18,24 @@ export const sendToKafka = async (topic, message) => {
       topic,
       messages: [{ value: JSON.stringify(message) }],
     });
-    logger.info(`Message sent to Kafka topic: ${topic}`);
+    kafkaLogger.info(`Message sent to Kafka topic: ${topic}`);
   } catch (err) {
-    logger.error(`Error sending message to Kafka topic ${topic}:`, err);
+    kafkaLogger.error({
+      message: `Error sending message to Kafka topic ${topic}`,
+      error: err.stack || err,
+    });
   }
 };
+
+/**
+ * @function kafkaToMongoDB
+ * @description Subscribes to a Kafka topic, listens for messages,
+ * parses them, and saves them into MongoDB using MessageModel.
+ *
+ * @param {string} topic - Kafka topic to subscribe to
+ *
+ * @returns {void}
+ */
 
 export const kafkaToMongoDB = async (topic) => {
   try {
@@ -27,20 +50,20 @@ export const kafkaToMongoDB = async (topic) => {
           const savedMessage = await newMessage.save();
 
           if (savedMessage) {
-            logger.info(
+            kafkaLogger.info(
               "Message received from Kafka and saved to the database."
             );
           } else {
-            logger.error("Failed to save message to the database.");
+            kafkaLogger.error("Failed to save message to the database.");
           }
         } catch (err) {
-          logger.error("Error processing Kafka message:", err);
+          kafkaLogger.error("Error processing Kafka message:", err);
         }
       },
     });
 
-    logger.info(`Kafka consumer subscribed to topic: ${topic}`);
+    kafkaLogger.info(`Kafka consumer subscribed to topic: ${topic}`);
   } catch (err) {
-    logger.error("Error initializing Kafka consumer:", err);
+    kafkaLogger.error("Error initializing Kafka consumer:", err);
   }
 };
