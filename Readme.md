@@ -3,20 +3,6 @@
 This project is a **scalable real-time chat application** designed with modern web technologies.
 It supports secure user authentication, live messaging, and robust data pipelines for handling large-scale usage.
 
-### Key highlights
-
-* **Frontend** built with React (Vite) and styled using Tailwind CSS + DaisyUI for fast, responsive UIs.
-* **Backend** built on Node.js with Express, handling REST APIs, authentication, and real-time WebSocket connections via Socket.io.
-* **Socket.io** manages live message delivery to clients.
-* **Redis** serves as a pub/sub mechanism for Socket.io to synchronize messages across multiple backend instances, enabling horizontal scaling.
-* **Kafka** acts as a message broker, decoupling real-time delivery from database persistence. This ensures reliability and opens paths for future analytics or event-driven microservices.
-* **MongoDB** stores persistent user data and chat history.
-* **Docker** is used to containerize supporting infrastructure like Kafka, Zookeeper, and Redis, making local development and deployment easy.
-
-## Tech Stack
-✅ Perfect — here’s your updated **README tables** with everything you listed:
-
----
 
 ## 🚀 Tech Stack Overview
 
