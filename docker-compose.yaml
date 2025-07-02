@@ -34,6 +34,26 @@ services:
       - ./kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
     depends_on:
       - zookeeper
+  
+  prom-server:
+    image: prom/prometheus
+    container_name: prometheus-server
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus-config.yml:/etc/prometheus/prometheus.yml
+
+  grafana-client :
+      image : grafana/grafana-oss
+      ports : 
+        - 3000:3000
+      container_name : grafana-client
+  
+  loki :
+      image : grafana/loki
+      ports :
+          - 3100:3100
+      container_name: grafana-loki
 
 volumes:
   redis_data:

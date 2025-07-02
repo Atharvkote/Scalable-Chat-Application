@@ -29,6 +29,7 @@ import helmet from "helmet";
 import Redis from "ioredis";
 import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
+import client from "prom-client";
 import { rateLimit } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
 import { RateLimiterRedis } from "rate-limiter-flexible";
@@ -58,9 +59,27 @@ const app = express();
 const SERVER_PORT = process.env.SERVER_PORT;
 const server = http.createServer(app);
 const redisClient = new Redis(process.env.REDIS_URL);
-const allowedOrigins = ["http://localhost:5173"];
+const allowedOrigins = ["http://localhost:5173","http://localhost:9090"];
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const collectDefaultMetrics = client.collectDefaultMetrics;
+collectDefaultMetrics({ register: client.register });
+
+
+
+const httpRequestDurationSeconds = new client.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'code'],
+  buckets: [0.05, 0.1, 0.2, 0.5, 1, 2, 5] // match your Apdex target/tolerated
+});
+
+const responseSizeBytes = new client.Counter({
+  name: 'http_response_size_bytes',
+  help: 'Total size of HTTP responses sent in bytes',
+  labelNames: ['method', 'route', 'code']
+});
+
 
 !redisClient
   ? logger.error(
@@ -112,6 +131,34 @@ app.use(
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   })
 );
+
+app.use((req, res, next) => {
+  const end = httpRequestDurationSeconds.startTimer();
+  res.on('finish', () => {
+    end({ method: req.method, route: req.route?.path || req.path, code: res.statusCode });
+  });
+  next();
+});
+
+app.use((req, res, next) => {
+  const oldWrite = res.write;
+  const oldEnd = res.end;
+  let bytes = 0;
+
+  res.write = (...args) => {
+    if (args[0]) bytes += Buffer.byteLength(args[0]);
+    return oldWrite.apply(res, args);
+  };
+
+  res.end = (...args) => {
+    if (args[0]) bytes += Buffer.byteLength(args[0]);
+    responseSizeBytes.inc({ method: req.method, route: req.route?.path || req.path, code: res.statusCode }, bytes);
+    return oldEnd.apply(res, args);
+  };
+
+  next();
+});
+
 
 /**
  * @socketio Initialization & Broadcasting
@@ -273,6 +320,12 @@ app.get("/", (req, res) => {
   res.send("Welcome to the API");
 });
 
+app.get("/metrics", async (req, res) => {
+  res.setHeader("Content-type", client.register.contentType);
+  const serverMeterics = await client.register.metrics();
+  res.send(serverMeterics);
+});
+
 app.use("/api/v1/auth", authRouter);
 app.use("/api/messages", messageRouter);
 
@@ -334,4 +387,3 @@ const shutdown = async () => {
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
-
