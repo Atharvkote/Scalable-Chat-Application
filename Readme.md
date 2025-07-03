@@ -4,7 +4,7 @@ This project is a **scalable real-time chat application** designed with modern w
 It supports secure user authentication, live messaging, and robust data pipelines for handling large-scale usage.
 
 
-![Image](/Home.png)
+![Image](/client/public/Home.png)
 
 ## Architecture
 
