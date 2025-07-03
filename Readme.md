@@ -1,14 +1,14 @@
 # Scalable Chat Application
 
 This project is a **scalable real-time chat application** designed with modern web technologies.
-It supports secure user authentication, live messaging, and robust data pipelines for handling large-scale usage.
+It supports secure `user authentication`, `live messaging`, and `robust data pipelines` for handling `large-scale` usage.
 
 
 ![Image](/client/public/Home.png)
 
 ## Architecture
 
-This architecture uses multiple Node.js servers to handle WebSocket connections, with Redis Pub/Sub ensuring real-time events are synchronized across all instances. Messages are published to Kafka for scalable, durable processing, then consumed by workers that store them in MongoDB. This design separates concerns—real-time communication, message streaming, and data persistence—making the system highly scalable and fault-tolerant.
+This architecture uses multiple Node.js `servers` to handle `WebSocket` connections, with Redis `Pub/Sub` ensuring real-time events are synchronized across all instances. Messages are published to `Kafka for scalable`, durable processing, then consumed by `workers` that store them in `MongoDB`. This design separates concerns—real-time communication, message streaming, and `data persistence—making the system highly scalable and fault-tolerant`.
 
 ```mermaid
 flowchart LR
