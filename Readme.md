@@ -1,14 +1,13 @@
 # Scalable Chat Application
 
 This project is a **scalable real-time chat application** designed with modern web technologies.
-It supports secure `user authentication`, `live messaging`, and `robust data pipelines` for handling `large-scale` usage.
-
+It supports secure user authentication, live messaging, and robust data pipelines for handling large-scale usage.
 
 ![Image](/client/public/Home.png)
 
 ## Architecture
 
-This architecture uses multiple Node.js `servers` to handle `WebSocket` connections, with Redis `Pub/Sub` ensuring real-time events are synchronized across all instances. Messages are published to `Kafka for scalable`, durable processing, then consumed by `workers` that store them in `MongoDB`. This design separates concerns—real-time communication, message streaming, and `data persistence—making the system highly scalable and fault-tolerant`.
+This architecture uses multiple Node.js servers to handle WebSocket connections, with Redis Pub/Sub ensuring real-time events are synchronized across all instances. Messages are published to Kafka for scalable, durable processing, then consumed by workers that store them in MongoDB. This design separates concerns—real-time communication, message streaming, and data persistence—making the system highly scalable and fault-tolerant.
 
 ```mermaid
 flowchart LR
@@ -61,7 +60,7 @@ W["Kafka Consumer / Worker"]
 
 ```
 
-##  Tech Stack Overview
+## Tech Stack Overview
 
 | Technology                                                                                     | Description                          | Role in Project                                                                       |
 | ---------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
@@ -123,7 +122,6 @@ Manages messaging functionality between users.
 
 > [!NOTE] Protected routes use `authMiddleware` to ensure the user is logged in.
 
-
 # Scaling
 
 ## Why scale?
@@ -143,27 +141,50 @@ When you run multiple instances of your server (e.g. behind Nginx or a Kubernete
 #### Example usage
 
 ```javascript
-import { createServer } from "http";
+/**
+ * @socketio Initialization & Broadcasting
+ *
+ * - Creates Socket.IO server attached to HTTP server.
+ * - Uses Redis adapter for horizontal scaling (cross-instance pub/sub).
+ * - Configures CORS, heartbeat options, and logs startup.
+ */
+
+import http from "http";
 import { Server } from "socket.io";
-import { createAdapter } from "@socket.io/redis-adapter";
-import { createClient } from "redis";
+import Redis from "ioredis";
+import { createAdapter } from "@socket.io/redis-streams-adapter";
+import logger from "./src/utils/logger.js";
+import { socketIOBroadcastor } from "./src/configs/socket.config.js";
 
-const httpServer = createServer();
-const io = new Server(httpServer);
+const SERVER_PORT = process.env.SERVER_PORT;
+const allowedOrigins = ["http://localhost:5173", "http://localhost:9090"];
 
-const pubClient = createClient({ url: "redis://localhost:6379" });
-const subClient = pubClient.duplicate();
+const redisClient = new Redis(process.env.REDIS_URL);
+const app = express();
+const server = http.createServer(app);
 
-await pubClient.connect();
-await subClient.connect();
-
-io.adapter(createAdapter(pubClient, subClient));
-
-io.on("connection", (socket) => {
-  console.log("User connected", socket.id);
+const io = new Server(server, {
+  adapter: createAdapter(redisClient),
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "DELETE", "PATCH", "HEAD", "PUT"],
+    credentials: true,
+  },
+  pingInterval: 5000,
+  pingTimeout: 20000,
+  allowEIO3: true,
 });
 
-httpServer.listen(3000);
+io
+  ? logger.info(`Web Socket(Socket.io) Server Initialized! [Env: ${process.env.NODE_ENV}]`)
+  : logger.error(`Web Socket(Socket.io) Server Initialization Failed! [Env: ${process.env.NODE_ENV}]`);
+
+socketIOBroadcastor();
+
+server.listen(SERVER_PORT, () => {
+  logger.info(`Server running on http://localhost:${SERVER_PORT} [Env: ${process.env.NODE_ENV}]`);
+});
+
 ```
 
 ### 2. Kafka for message scaling
@@ -176,18 +197,76 @@ This handles **massive scale**, provides **message durability**, and decouples c
 #### Example producer snippet
 
 ```javascript
-import { Kafka } from "kafkajs";
+import { producer, consumer } from "../configs/kafka.config.js";
+import MessageModel from "../models/message.model.js";
+import { kafkaLogger } from "../utils/logger.js";
 
-const kafka = new Kafka({ brokers: ["localhost:9092"] });
-const producer = kafka.producer();
+/**
+ * @function sendToKafka
+ * @description Sends a JSON stringified message to a specified Kafka topic.
+ *
+ * @param {string} topic - Kafka topic name
+ * @param {Object} message - Message payload to send
+ *
+ * @returns {void}
+ */
 
-await producer.connect();
-await producer.send({
-  topic: "chat-messages",
-  messages: [{ key: "user1", value: "Hello there!" }],
-});
+export const sendToKafka = async (topic, message) => {
+  try {
+    await producer.send({
+      topic,
+      messages: [{ value: JSON.stringify(message) }],
+    });
+    kafkaLogger.info(`Message sent to Kafka topic: ${topic}`);
+  } catch (err) {
+    kafkaLogger.error({
+      message: `Error sending message to Kafka topic ${topic}`,
+      error: err.stack || err,
+    });
+  }
+};
+
+/**
+ * @function kafkaToMongoDB
+ * @description Subscribes to a Kafka topic, listens for messages,
+ * parses them, and saves them into MongoDB using MessageModel.
+ *
+ * @param {string} topic - Kafka topic to subscribe to
+ *
+ * @returns {void}
+ */
+
+export const kafkaToMongoDB = async (topic) => {
+  try {
+    await consumer.connect();
+    await consumer.subscribe({ topic, fromBeginning: true });
+
+    await consumer.run({
+      eachMessage: async ({ topic, partition, message }) => {
+        try {
+          const data = JSON.parse(message.value.toString());
+          const newMessage = new MessageModel(data);
+          const savedMessage = await newMessage.save();
+
+          if (savedMessage) {
+            kafkaLogger.info(
+              "Message received from Kafka and saved to the database."
+            );
+          } else {
+            kafkaLogger.error("Failed to save message to the database.");
+          }
+        } catch (err) {
+          kafkaLogger.error("Error processing Kafka message:", err);
+        }
+      },
+    });
+
+    kafkaLogger.info(`Kafka consumer subscribed to topic: ${topic}`);
+  } catch (err) {
+    kafkaLogger.error("Error initializing Kafka consumer:", err);
+  }
+};
 ```
-
 
 ## Installation
 
