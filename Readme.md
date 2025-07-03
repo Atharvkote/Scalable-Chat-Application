@@ -11,53 +11,74 @@ This architecture uses multiple Node.js servers to handle WebSocket connections,
 
 ```mermaid
 flowchart LR
+    %% Subgraphs
     subgraph Clients
         U1[Client 1]
         U2[Client 2]
         U3[Client 3]
     end
 
-    subgraph Chat Servers
+    subgraph Chat_Servers[Chat Servers]
         A[Node.js Instance 1]
         B[Node.js Instance 2]
         C[Node.js Instance 3]
     end
 
     subgraph Infra
-       R["Redis Pub/Sub"]
-DB["MongoDB / Any DB"]
-W["Kafka Consumer / Worker"]
-
+        R["Redis Pub/Sub"]
+        K["Kafka Broker"]
+        DB["MongoDB / Database"]
     end
 
     subgraph Workers
-        W[Kafka Consumer / Worker]
+        W["Kafka Consumer / Worker"]
     end
 
-    %% Clients connect via WebSockets
+    %% Connections
     U1 -- WebSocket --> A
     U2 -- WebSocket --> B
     U3 -- WebSocket --> C
 
-    %% Redis adapter keeps socket instances in sync
     A -- Pub/Sub --> R
     B -- Pub/Sub --> R
     C -- Pub/Sub --> R
 
-    %% Kafka handles message queueing
     A -- Produce --> K
     B -- Produce --> K
     C -- Produce --> K
 
-    %% Worker consumes from Kafka and persists
     K -- Consume --> W
     W -- Store --> DB
 
-    %% Chat servers can also read latest from DB if needed
     A -- Query --> DB
     B -- Query --> DB
     C -- Query --> DB
 
+    %% Styling
+    style U1 fill:#3B82F6,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    style U2 fill:#3B82F6,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    style U3 fill:#3B82F6,stroke:#ffffff,stroke-width:2px,color:#ffffff
+
+    style A fill:#10B981,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    style B fill:#10B981,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    style C fill:#10B981,stroke:#ffffff,stroke-width:2px,color:#ffffff
+
+    style R fill:#F59E0B,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    style K fill:#8B5CF6,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    style DB fill:#EF4444,stroke:#ffffff,stroke-width:2px,color:#ffffff
+
+    style W fill:#0EA5E9,stroke:#ffffff,stroke-width:2px,color:#ffffff
+
+    %% Subgraph colors (requires newer mermaid)
+    classDef clients fill:#1F2937,stroke:#3B82F6,color:#ffffff;
+    classDef servers fill:#1F2937,stroke:#10B981,color:#ffffff;
+    classDef infra fill:#1F2937,stroke:#F59E0B,color:#ffffff;
+    classDef workers fill:#1F2937,stroke:#0EA5E9,color:#ffffff;
+
+    class Clients clients;
+    class Chat_Servers servers;
+    class Infra infra;
+    class Workers workers;
 ```
 
 ## Tech Stack Overview
