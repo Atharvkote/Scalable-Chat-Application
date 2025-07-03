@@ -268,6 +268,82 @@ export const kafkaToMongoDB = async (topic) => {
 };
 ```
 
+## Monitoring Setup
+
+To ensure high availability and track the health of the system, this project integrates **Prometheus** for metrics collection and **Grafana** for visualization.
+
+### 1️ Prometheus
+
+* **Role:** Core monitoring system.
+* **How:**
+
+  * Scrapes metrics exposed by your Node.js applications (via `/metrics` endpoint using libraries like `prom-client`).
+  * Also pulls metrics from Kafka, Redis, and system nodes.
+* **Benefit:**
+
+  * Collects time-series data for CPU, memory, request counts, Kafka lag, Redis stats, etc.
+  * Powers Grafana dashboards.
+
+**Example Prometheus scrape config:**
+
+```yaml
+scrape_configs:
+  - job_name: 'node-app'
+    static_configs:
+      - targets: ['host.docker.internal:9090'] # or your Node.js exporter port
+```
+
+### Grafana
+
+![Image](/client/public/grafana.png)
+
+* **Role:** Data visualization & alerting layer on top of Prometheus.
+* **How:**
+
+  * Connects to Prometheus as a data source.
+  * Provides prebuilt dashboards for Kafka, Redis, Node.js, Docker, and OS metrics.
+* **Benefit:**
+
+  * Beautiful, customizable dashboards.
+  * Slack / Email / PagerDuty alerts if metrics cross thresholds.
+
+## Local setup with Docker Compose
+
+You can spin up both **Prometheus and Grafana** easily using Docker Compose:
+
+```yaml
+services:
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+```
+
+###  **Monitoring flow :**
+
+```mermaid
+flowchart TD
+    A[Node.js App] -->|Exposes metrics| P(Prometheus)
+    B[Kafka Broker] -->|JMX / Exporters| P
+    C[Redis Server] -->|Redis Exporter| P
+    P --> G[Grafana Dashboards]
+    
+    style P fill:#f9f,stroke:#333,stroke-width:2px
+    style G fill:#bbf,stroke:#333,stroke-width:2px
+
+```
+
 ## Installation
 
 ```bash
