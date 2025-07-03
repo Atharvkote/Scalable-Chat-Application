@@ -3,7 +3,63 @@
 This project is a **scalable real-time chat application** designed with modern web technologies.
 It supports secure user authentication, live messaging, and robust data pipelines for handling large-scale usage.
 
-## 🚀 Tech Stack Overview
+
+## Architecture
+
+This architecture uses multiple Node.js servers to handle WebSocket connections, with Redis Pub/Sub ensuring real-time events are synchronized across all instances. Messages are published to Kafka for scalable, durable processing, then consumed by workers that store them in MongoDB. This design separates concerns—real-time communication, message streaming, and data persistence—making the system highly scalable and fault-tolerant.
+
+```mermaid
+flowchart LR
+    subgraph Clients
+        U1[Client 1]
+        U2[Client 2]
+        U3[Client 3]
+    end
+
+    subgraph Chat Servers
+        A[Node.js Instance 1]
+        B[Node.js Instance 2]
+        C[Node.js Instance 3]
+    end
+
+    subgraph Infra
+       R["Redis Pub/Sub"]
+DB["MongoDB / Any DB"]
+W["Kafka Consumer / Worker"]
+
+    end
+
+    subgraph Workers
+        W[Kafka Consumer / Worker]
+    end
+
+    %% Clients connect via WebSockets
+    U1 -- WebSocket --> A
+    U2 -- WebSocket --> B
+    U3 -- WebSocket --> C
+
+    %% Redis adapter keeps socket instances in sync
+    A -- Pub/Sub --> R
+    B -- Pub/Sub --> R
+    C -- Pub/Sub --> R
+
+    %% Kafka handles message queueing
+    A -- Produce --> K
+    B -- Produce --> K
+    C -- Produce --> K
+
+    %% Worker consumes from Kafka and persists
+    K -- Consume --> W
+    W -- Store --> DB
+
+    %% Chat servers can also read latest from DB if needed
+    A -- Query --> DB
+    B -- Query --> DB
+    C -- Query --> DB
+
+```
+
+##  Tech Stack Overview
 
 | Technology                                                                                     | Description                          | Role in Project                                                                       |
 | ---------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
@@ -65,56 +121,6 @@ Manages messaging functionality between users.
 
 > [!NOTE] Protected routes use `authMiddleware` to ensure the user is logged in.
 
-## Installation
-
-```bash
-> git clone https://github.com/Atharvkote/Scalable-Chat-Application.git
-> cd Scalable-Chat-Application
-> npm install
-> npm install --prefix client && npm install --prefix server
-```
-
-### Running the Server
-
-```bash
-> npm run dev  # Start of Both the Servers
-                       [OR]
-> npm run client # Start Client Server
-> npm run server # Start Backend Server
-```
-
-### Client `.env`
-
-```js
-VITE_API_URL = http://localhost:5000/api
-```
-
-### Server `.env`
-
-```js
-NODE_ENV = development | production
-SERVER_PORT = 5000
-MONGODB_URI = <YOUR_MONGOURI>
-SALT_ROUNDS = 10
-JWT_SECRET = <your_jwt_secret_key>
-JWT_EXPIRATION = 7d
-REDIS_URL = <YOUR_REDIS_SERVER_URL>
-REDIS_PORT = 6379
-CLOUNDINARY_CLOUD_NAME = <CLOUND_NAME>
-CLOUNDINARY_API_KEY = <YOUR_API_KEY>
-CLOUNDINARY_API_SECRET = <YOUR_SECRET>
-KAFKA_USERNAME = admin
-KAFKA_PASSWORD = admin-secret
-KAFKA_TOPIC = <TOPIC_NAME>
-USER_IP = <YOUR_IP>
-```
-
-Perfect — let’s build a **powerful “Scaling” section** for your README.
-I’ll include:
-✅ Explanations (Redis adapter, Kafka, Docker scaling)
-✅ Mermaid diagram to visualize the architecture
-✅ Code samples (Socket.IO Redis adapter, Kafka producer)
-✅ Useful docs links under **Resources**.
 
 # Scaling
 
@@ -180,57 +186,49 @@ await producer.send({
 });
 ```
 
-## Architecture
 
-```mermaid
-flowchart LR
-    subgraph Clients
-        U1[Client 1]
-        U2[Client 2]
-        U3[Client 3]
-    end
+## Installation
 
-    subgraph Chat Servers
-        A[Node.js Instance 1]
-        B[Node.js Instance 2]
-        C[Node.js Instance 3]
-    end
+```bash
+> git clone https://github.com/Atharvkote/Scalable-Chat-Application.git
+> cd Scalable-Chat-Application
+> npm install
+> npm install --prefix client && npm install --prefix server
+```
 
-    subgraph Infra
-       R["Redis Pub/Sub"]
-DB["MongoDB / Any DB"]
-W["Kafka Consumer / Worker"]
+### Running the Server
 
-    end
+```bash
+> npm run dev  # Start of Both the Servers
+                       [OR]
+> npm run client # Start Client Server
+> npm run server # Start Backend Server
+```
 
-    subgraph Workers
-        W[Kafka Consumer / Worker]
-    end
+### Client `.env`
 
-    %% Clients connect via WebSockets
-    U1 -- WebSocket --> A
-    U2 -- WebSocket --> B
-    U3 -- WebSocket --> C
+```js
+VITE_API_URL = http://localhost:5000/api
+```
 
-    %% Redis adapter keeps socket instances in sync
-    A -- Pub/Sub --> R
-    B -- Pub/Sub --> R
-    C -- Pub/Sub --> R
+### Server `.env`
 
-    %% Kafka handles message queueing
-    A -- Produce --> K
-    B -- Produce --> K
-    C -- Produce --> K
-
-    %% Worker consumes from Kafka and persists
-    K -- Consume --> W
-    W -- Store --> DB
-
-    %% Chat servers can also read latest from DB if needed
-    A -- Query --> DB
-    B -- Query --> DB
-    C -- Query --> DB
-
+```js
+NODE_ENV = development | production
+SERVER_PORT = 5000
+MONGODB_URI = <YOUR_MONGOURI>
+SALT_ROUNDS = 10
+JWT_SECRET = <your_jwt_secret_key>
+JWT_EXPIRATION = 7d
+REDIS_URL = <YOUR_REDIS_SERVER_URL>
+REDIS_PORT = 6379
+CLOUNDINARY_CLOUD_NAME = <CLOUND_NAME>
+CLOUNDINARY_API_KEY = <YOUR_API_KEY>
+CLOUNDINARY_API_SECRET = <YOUR_SECRET>
+KAFKA_USERNAME = admin
+KAFKA_PASSWORD = admin-secret
+KAFKA_TOPIC = <TOPIC_NAME>
+USER_IP = <YOUR_IP>
 ```
 
 ## Resources
