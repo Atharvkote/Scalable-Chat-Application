@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import chalk from "chalk";
 import LokiTransport from "winston-loki";
+import { error } from "console";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +52,7 @@ const loggerInstance = winston.createLogger({
     }),
     new LokiTransport({
       host :`http://127.0.0.1:3100`,
+      level: "error",
     })
   ],
   exitOnError: false,

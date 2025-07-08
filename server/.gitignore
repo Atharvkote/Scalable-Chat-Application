@@ -1,3 +1,6 @@
+# Enviroment
+.env*
+
 # Logs
 logs
 *.log
@@ -18,7 +21,7 @@ dist-ssr
 .idea
 .DS_Store
 *.suo
-*.ntvs*
+.ntvs
 *.njsproj
 *.sln
-*.sw?
+*.sw
